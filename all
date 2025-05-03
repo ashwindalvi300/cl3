@@ -104,5 +104,133 @@ if __name__ == "__main__":
     MRWordCount.run()
 ########################################################################################################################
 python Word_Count_Mr.py Text_File.txt
-##################################################### Practical - 4 Load balancing ######################################
 
+##################################################### Practical - 4 Load balancing ################################################
+import random
+
+class LoadBalancer:
+    def __init__(self, servers):
+        self.servers = servers
+
+    def round_robin(self):
+        server_index = 0
+        while True:
+            yield self.servers[server_index]
+            server_index = (server_index+1) % len(self.servers)
+
+    def random_selection(self):
+        while True:
+            yield random.choice(self.servers)
+
+    def least_connetion(self):
+        while True:
+            min_connections = min(self.servers, key = lambda x : x.connections)
+            min_connections.connections += 1
+            yield min_connections
+
+class Server:
+    def __init__(self, name):
+        self.name = name
+        self.connections = 0
+
+def simulate_requests(load_balancer, num_requests):
+    print("Simulating {} requests...\n".format(num_requests))
+    for i in range(num_requests):
+        server = next(load_balancer)
+        print("Request {} handled by Server {}".format(i+1, server.name))
+
+if __name__ == '__main__':
+    server1 = Server("Server1")
+    server2 = Server("Server2")
+    server3 = Server("Server3")
+
+    servers = [server1, server2, server3]
+
+    lb = LoadBalancer(servers)
+
+    load_balancer = lb.round_robin()
+   # load_balancer = lb.random_selection()
+    #load_balancer = lb.least_connetion()
+
+    simulate_requests(load_balancer, 10)
+
+###################################################################################################################################
+python Load_balancing.py
+##################################################### Practical - 5 Clone selection algorithm ######################################
+import random
+import numpy as np
+
+def objective_function(x):
+    return sum([(i ** 2) for i in x])
+
+def generate_antibodies(num_antibodies, num_dimensions, search_space):
+    antibodies = []
+    for _ in range(num_antibodies):
+        antibody = [random.uniform(search_space[i][0], search_space[i][1]) for i in range (num_dimensions)]
+        antibodies.append(antibody)
+    return antibodies
+
+def clone(antibodies, num_clones, clone_factor):
+    clones = []
+    for antibody in antibodies:
+        clones += [antibody] * int(num_clones * (1 / (1 + objective_function(antibody) * clone_factor)))
+    return clones
+
+def hypermutate(clones, mutation_rate, search_space):
+    mutated_clones = []
+    for clone in clones:
+        mutated_clone = []
+        for gene in range(len(clone)):
+            if random.random() < mutation_rate:
+                mutated_gene = clone[gene] + random.uniform(-0.5, 0.5) * (search_space[gene][1] - search_space[gene][0])
+                # Clamp to search space
+                mutated_gene = max(min(mutated_gene, search_space[gene][1]), search_space[gene][0])
+                mutated_clone.append(mutated_gene)
+            else:
+                # This was missing in your code!
+                mutated_clone.append(clone[gene])
+        mutated_clones.append(mutated_clone)
+    return mutated_clones
+
+
+def select_antibodies(antibodies, clones, num_antibodies):
+    combined_population = antibodies + clones
+    combined_population.sort(key = lambda x : objective_function(x))
+    return combined_population[:num_antibodies]
+
+def clonal_selection_algorithm(num_antibodies, num_dimensions, search_space, num_generations, num_clones, clone_factor, mutation_rate):
+    antibodies = generate_antibodies(num_antibodies, num_dimensions, search_space)
+
+    for generation in range(num_generations):
+        clones = clone(antibodies, num_clones, clone_factor)
+        mutated_clones = hypermutate(clones, mutation_rate, search_space)
+        antibodies = select_antibodies(antibodies, mutated_clones, num_antibodies)
+
+        best_antibody = min(antibodies, key = lambda x : objective_function(x))
+        print(f"Genration {generation + 1} : Best Antibody - {best_antibody}, Fitness - {objective_function(best_antibody)}")
+
+    return min(antibodies, key = lambda x : objective_function(x))
+
+if __name__ == "__main__":
+    num_antibodies = 50
+    num_dimensions = 3
+    search_space = [(-5, 5)] * num_dimensions
+    num_generations = 100
+    num_clones = 10
+    clone_factor = 0.1
+    mutation_rate = 0.1
+
+    best_solution = clonal_selection_algorithm(
+        num_antibodies,
+        num_dimensions,
+        search_space,
+        num_generations,
+        num_clones,
+        clone_factor,
+        mutation_rate
+    )
+    print("Best Solution:", best_solution)
+    print("Objective Value:", objective_function(best_solution))
+########################################################################################################################################
+python clone_sel_algo.py
+###################################### Practical - 6 
