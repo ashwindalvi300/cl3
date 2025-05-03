@@ -1,3 +1,7 @@
+curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+python get-pip.py
+pip --version
+
 ##################################################### Practical 1 - RPC ############################################################
 
 ############################### Server.py ##########################################
@@ -13,7 +17,8 @@ server = SimpleXMLRPCServer(('localhost',8000))
 server.register_function(factorial, 'calculate_factorial')
 print("Server is ready to accept RPC calls....")
 server.serve_forever()
-
+##############################################################################################
+python Server.py
 ####################################### Client.py ############################################
 import xmlrpc.client
 
@@ -25,8 +30,8 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
+###################################################################################################################################
+python Client.py
 ##################################################### Practical 2 - RMI ############################################################
 
 ############################### Server.py ##########################################
@@ -45,8 +50,8 @@ uri = daemon.register(obj)
 
 print("Server URI:", uri)
 daemon.requestLoop()
-
-
+###################################################################################
+python Server.py
 ############################### Client.py ##########################################
 import Pyro4
 
@@ -58,14 +63,46 @@ str2 = input("Enter the second string: ")
 
 result = concatenate.concatenator(str1, str2)  
 print("Concatenated string:", result)
-
-
+#########################################################################################################################################
+python Client.py
 ############################################ Practical 3 - Character counting Hadoop #####################################################
 ##################### Text_File.txt #####################
 Hello Hello how are you!
 
 ############################ Char_Count_Mr.py #####################################
+from mrjob.job import MRJob
 
+class MRCharCount(MRJob):
+    def mapper(self, _, line):
+        for char in line.strip():
+            yield char, 1
 
+    def reducer(self, char, counts):
+        yield char, sum(counts)
 
+if __name__ == '__main__':
+    MRCharCount.run()
+##################################################################################
+python Char_Count_Mr.py Text_File.txt
+pip install setuptools
 ############################ Word_Count_Mr.py ######################################
+from mrjob.job import MRJob
+import re
+
+WORD_REGEXP = re.compile(r"[\w']+")
+
+class MRWordCount(MRJob):
+
+    def mapper(self, _, line):
+        for word in WORD_REGEXP.findall(line):
+            yield word.lower(), 1
+
+    def reducer(self, word, counts):
+        yield word, sum(counts)
+
+if __name__ == "__main__":
+    MRWordCount.run()
+########################################################################################################################
+python Word_Count_Mr.py Text_File.txt
+##################################################### Practical - 4 Load balancing ######################################
+
