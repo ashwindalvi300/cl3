@@ -233,4 +233,260 @@ if __name__ == "__main__":
     print("Objective Value:", objective_function(best_solution))
 ########################################################################################################################################
 python clone_sel_algo.py
-###################################### Practical - 6 
+###################################### Practical - 6 Neural Style Transfer #########################################################
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras.applications import vgg19
+from tensorflow.keras.preprocessing.image import load_img, img_to_array
+from tensorflow.keras import Model
+import matplotlib.pyplot as plt
+
+# Define paths to content and style images
+content_path = "C:/Users/dell/Desktop/practical/content_image.jpg" 
+style_path = "C:/Users/dell/Desktop/practical/style_image.jpg"
+
+# Define image dimensions
+width, height = load_img(content_path).size
+img_size = (height, width)
+
+# Load and preprocess images
+def load_and_preprocess_image(path):
+    img = load_img(path, target_size=img_size)
+    img = img_to_array(img)
+    img = np.expand_dims(img, axis=0)
+    img = vgg19.preprocess_input(img)
+    return img
+
+# Deprocess image
+def deprocess_img(processed_img):
+    x = processed_img.copy()
+    if len(x.shape) == 4:
+        x = np.squeeze(x, 0)
+    x[:, :, 0] += 103.939
+    x[:, :, 1] += 116.779
+    x[:, :, 2] += 123.68
+    x = x[:, :, ::-1]
+    x = np.clip(x, 0, 255).astype('uint8')
+    return x
+
+# Load and preprocess content and style images
+content_image = load_and_preprocess_image(content_path)
+style_image = load_and_preprocess_image(style_path)
+
+# Display content and style images
+plt.subplot(1, 2, 1)
+plt.imshow(deprocess_img(content_image))
+plt.title('Content Image')
+
+plt.subplot(1, 2, 2)
+plt.imshow(deprocess_img(style_image))
+plt.title('Style Image')
+plt.show()
+
+# Load VGG19 model
+vgg = vgg19.VGG19(include_top=False, weights='imagenet')
+vgg.trainable = False
+
+# Select content and style layers
+content_layers = ['block5_conv2']
+style_layers = [
+    'block1_conv1',
+    'block2_conv1',
+    'block3_conv1',
+    'block4_conv1',
+    'block5_conv1',
+]
+
+content_outputs = [vgg.get_layer(name).output for name in content_layers]
+style_outputs = [vgg.get_layer(name).output for name in style_layers]
+model_outputs = content_outputs + style_outputs
+
+# Build model for feature extraction
+model = Model(inputs=vgg.input, outputs=model_outputs)
+
+# Extract feature representations
+def get_feature_representations(model, content_path, style_path):
+    content_image = load_and_preprocess_image(content_path)
+    style_image = load_and_preprocess_image(style_path)
+
+    content_outputs = model(content_image)
+    style_outputs = model(style_image)
+
+    content_features = [layer[0] for layer in content_outputs[:len(content_layers)]]
+    style_features = [tf.expand_dims(layer[0], axis=0) for layer in style_outputs[len(content_layers):]]
+
+    return content_features, style_features
+
+content_features, style_features = get_feature_representations(model, content_path, style_path)
+
+# Gram matrix function
+def gram_matrix(input_tensor):
+    result = tf.linalg.einsum('bijc,bijd->bcd', input_tensor, input_tensor)
+    input_shape = tf.shape(input_tensor)
+    num_locations = tf.cast(input_shape[1] * input_shape[2], tf.float32)
+    return result / num_locations
+
+# Loss functions
+def style_loss(style, generated):
+    return tf.reduce_mean(tf.square(gram_matrix(style) - gram_matrix(generated)))
+
+def content_loss(content, generated):
+    return tf.reduce_mean(tf.square(content - generated))
+
+def total_variation_loss(image):
+    x_var = tf.square(image[:, :-1, :-1, :] - image[:, 1:, :-1, :])
+    y_var = tf.square(image[:, :-1, :-1, :] - image[:, :-1, 1:, :])
+    return tf.reduce_mean(x_var + y_var)
+
+# Weights for the losses
+content_weight = 1e3
+style_weight = 1e-2
+total_variation_weight = 30
+
+# Optimizer (FIXED: small learning rate)
+optimizer = tf.optimizers.Adam(learning_rate=0.01, beta_1=0.99, epsilon=1e-1)
+
+# Target image to optimize
+target_image = tf.Variable(content_image, dtype=tf.float32)
+
+# Training step
+@tf.function()
+def train_step(image):
+    with tf.GradientTape() as tape:
+        outputs = model(image)
+        content_loss_val = 0
+        style_loss_val = 0
+
+        content_features_gen = outputs[:len(content_layers)]
+        style_features_gen = outputs[len(content_layers):]
+
+        for c, c_gen in zip(content_features, content_features_gen):
+            content_loss_val += content_loss(c, c_gen)
+
+        for s, s_gen in zip(style_features, style_features_gen):
+            style_loss_val += style_loss(s, s_gen)
+
+        content_loss_val *= content_weight / len(content_layers)
+        style_loss_val *= style_weight / len(style_layers)
+        total_var_loss_val = total_variation_loss(image) * total_variation_weight
+
+        total_loss = content_loss_val + style_loss_val + total_var_loss_val
+
+    grad = tape.gradient(total_loss, image)
+    optimizer.apply_gradients([(grad, image)])
+    image.assign(tf.clip_by_value(image, 0.0, 255.0))
+
+# Number of iterations
+num_iterations = 1000
+
+# Training loop
+for i in range(num_iterations):
+    train_step(target_image)
+    if (i+1) % 100 == 0:
+        print(f"Iteration {i+1} completed")
+
+# Show final output
+plt.imshow(deprocess_img(target_image.numpy()))
+plt.title('Generated Image')
+plt.axis('off')
+plt.show()
+######################################################################################################################################
+pip install keras tensorflow matplotlib pillow numpy
+ipynb file
+###################################### Practical - 7 Artificial Immune pattern recognition ###########################################
+import numpy as np
+from sklearn import datasets
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+
+iris = datasets.load_iris()
+X = iris.data
+y = iris.target
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+class AISClassifier:
+    def __init__(self, n_antibodies=10, n_features=None):
+        self.n_antibodies = n_antibodies
+        self.n_features = n_features
+        self.antibodies = None
+        self.labels = None
+
+    def fit(self, X_train, y_train):
+        self.n_features = X_train.shape[1] if self.n_features is None else self.n_features
+        self.antibodies = np.random.rand(self.n_antibodies, self.n_features)
+        self.labels = np.random.choice(np.unique(y_train), size=self.n_antibodies)
+
+    def predict(self, X_test):
+        prediction = []
+        for x in X_test:
+            distances = np.linalg.norm(self.antibodies - x, axis=1)
+            closest_idx = np.argmin(distances)
+            prediction.append(self.labels[closest_idx])
+        return prediction
+    
+ais_clf = AISClassifier(n_antibodies=10)
+ais_clf.fit(X_train, y_train)
+
+y_pred = ais_clf.predict(X_test)
+
+accuracy = accuracy_score(y_test, y_pred)
+print("Accuracy : ", accuracy)
+#################################################################################################################################
+pip install scikit-learn
+python Artificial Immune system.py
+####################################### Practical 8 Distributed Evolutionary Algorithm ##########################################
+import random
+import numpy as np
+from deap import base, creator, tools, algorithms
+
+creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
+creator.create("Individual", list, fitness=creator.FitnessMin)
+
+toolbox = base.Toolbox()
+toolbox.register("attr_float", random.random)
+toolbox.register("individual", tools.initRepeat, creator.Individual, toolbox.attr_float, n=5)
+toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+
+def evalOneMax(individual):
+    return (sum(individual),)
+
+
+toolbox.register("evaluate", evalOneMax)
+
+toolbox.register("mate", tools.cxTwoPoint)
+toolbox.register("mutate", tools.mutFlipBit, indpb=0.5)
+toolbox.register("select", tools.selTournament, tournsize=3)
+
+def main():
+    pop = toolbox.population(n=300)
+    hof = tools.HallOfFame(1)
+    stats = tools.Statistics(lambda ind : ind.fitness.values)
+    stats.register("avg", np.mean)
+    stats.register("std", np.std)
+    stats.register("min", np.min)
+    stats.register("max", np.max)
+
+    pop, log = algorithms.eaSimple(pop, toolbox, cxpb=0.5, mutpb=0.2, ngen=40, stats=stats, halloffame=hof, verbose=True)
+    return pop, log, hof
+
+if __name__ == "__main__":
+    pop, log, hof = main()
+    print("Best individual is: %s\nwith fitness: %s" %(hof[0], hof[0].fitness.values))
+
+####################################################################################################################################
+pip install deap
+pyhton DEAP.py
+
+##################################################### Practical 9 Weather ########################################################
+
+
+###################################################################################################################################
+
+################################################### Practical 10 Ant Colony Optimization #############################################
+
+
+
+
+
+###########################################################################################################################################
