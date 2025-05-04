@@ -125,6 +125,40 @@ result = concatenate.concatenator(str1, str2)
 print("Concatenated string:", result)
 ################################################################################################################################################
 python Client.py
+######################################################## Question 4 - Palindrome ################################################################
+############################### Server.py ##########################################
+import Pyro4
+
+@Pyro4.expose
+class PalindromeChecker:
+    def is_palindrome(self, s):  # <-- Add 'self' here
+        s = s.replace(" ", "").lower()
+        reversed_s = s[::-1]
+        return s == reversed_s
+
+
+daemon = Pyro4.Daemon()
+obj = PalindromeChecker()
+uri = daemon.register(obj)
+
+print("Server URI:", uri)
+daemon.requestLoop()
+####################################################################################
+python Server.py
+############################### Client.py ##########################################
+import Pyro4
+
+uri = input("Enter the URI of the server: ")
+checker = Pyro4.Proxy(uri)
+
+user_input = input("Enter a string to check for palindrome: ")
+
+if checker.is_palindrome(user_input):
+    print("The string is a palindrome.")
+else:
+    print("The string is not a palindrome.")
+################################################################################################################################################
+python Client.py
 ############################################ Question 5, 7, 15 - Character counting Hadoop #####################################################
 ##################### Text_File.txt #####################
 Hello Hello how are you!
@@ -165,6 +199,30 @@ if __name__ == "__main__":
 ################################################################################################################################################
 python Word_Count_Mr.py Text_File.txt
 
+########################################################## Question 6 - Sentence Count ##########################################################
+######################################################### Text_File.txt ################################################
+Hello world! How are you? I am fine. Let's test this.
+################################################# Sentence_Count_Mr.py #################################################
+from mrjob.job import MRJob
+import re
+
+class MRSentenceCount(MRJob):
+    # Regex pattern to match sentence-ending punctuation
+    sentence_end_pattern = re.compile(r'[.!?]')
+
+    def mapper(self, _, line):
+        # Count how many sentence endings are in this line
+        sentences = self.sentence_end_pattern.findall(line)
+        yield "Total Sentences", len(sentences)
+
+    def reducer(self, key, values):
+        # Sum all the sentence counts from each mapper
+        yield key, sum(values)
+
+if __name__ == '__main__':
+    MRSentenceCount.run()
+#################################################################################################################################################
+python Sentence_Count_Mr.py Text_File.py
 ########################################################## Question 8 - Load balancing ##########################################################
 import random
 
@@ -539,9 +597,76 @@ pip install deap
 pyhton DEAP.py
 
 ################################################### Question 13 - Ant Colony Optimization ########################################################
+import numpy as np
 
+num_cities = 10
+num_ants = 100
+num_iterations = 1000
+alpha = 1
+beta = 2
+evaporation_rate = 0.1
 
+pheromone_matrix = np.ones((num_cities, num_cities))
+distance_matrix = np.random.randint(1, 100, size=(num_cities, num_cities))
+np.fill_diagonal(distance_matrix, 0)
 
+best_tour = None
+best_tour_length = np.inf
 
+for iteration in range(num_iterations):
+    all_tours = []
 
-###########################################################################################################################################
+    for ant in range(num_ants):
+        tour = []
+        visited = set()
+        current_city = np.random.randint(0, num_cities)
+        tour.append(current_city)
+        visited.add(current_city)
+
+        for _ in range(num_cities - 1):
+            next_city_probabilities = []
+            for city in range(num_cities):
+                if city not in visited:
+                    distance = distance_matrix[current_city][city]
+                    pheromone = pheromone_matrix[current_city][city]
+                    probability = (pheromone ** alpha) * ((1 / distance) ** beta)
+                    next_city_probabilities.append(probability)
+                else:
+                    next_city_probabilities.append(0)
+
+            total_prob = np.sum(next_city_probabilities)
+            if total_prob == 0:
+                # Fallback: randomly choose from unvisited cities
+                unvisited = list(set(range(num_cities)) - visited)
+                next_city = np.random.choice(unvisited)
+            else:
+                next_city_probabilities = np.array(next_city_probabilities) / total_prob
+                next_city = np.random.choice(num_cities, p=next_city_probabilities)
+
+            tour.append(next_city)
+            visited.add(next_city)
+            current_city = next_city
+
+        all_tours.append(tour)
+
+    # Evaporate pheromones
+    pheromone_matrix *= (1 - evaporation_rate)
+
+    # Update pheromones
+    for tour in all_tours:
+        tour_length = sum(distance_matrix[tour[i]][tour[i+1]] for i in range(len(tour)-1))
+        tour_length += distance_matrix[tour[-1]][tour[0]]  # Return to start
+        for i in range(len(tour) - 1):
+            pheromone_matrix[tour[i]][tour[i+1]] += 1 / tour_length
+            pheromone_matrix[tour[i+1]][tour[i]] += 1 / tour_length
+
+        # Update best tour
+        if tour_length < best_tour_length:
+            best_tour = tour
+            best_tour_length = tour_length
+
+print("Best tour length:", best_tour_length)
+print("Best tour:", best_tour)
+##################################################################################################################################################
+notebook
+##################################################################################################################################################
