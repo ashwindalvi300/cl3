@@ -2,8 +2,7 @@ curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
 python get-pip.py
 pip --version
 
-##################################################### Practical 1 - RPC ############################################################
-
+################################################ Question no. 1, 14 - RPC (factorial) ######################################################
 ############################### Server.py ##########################################
 from xmlrpc.server import SimpleXMLRPCServer
 
@@ -30,9 +29,70 @@ def main():
 
 if __name__ == "__main__":
     main()
-###################################################################################################################################
+##################################################################################################################################################
 python Client.py
-##################################################### Practical 2 - RMI ############################################################
+##################################################### Question 2 RPC (Arithmetic Operations) #####################################################
+############################### Server.py ##########################################
+from xmlrpc.server import SimpleXMLRPCServer
+
+def add(a, b):
+    return a + b
+
+def subtract(a, b):
+    return a - b
+
+def multiply(a, b):
+    return a * b
+
+def divide(a, b):
+    if b == 0:
+        return "Error: Division by zero"
+    return a / b
+
+server = SimpleXMLRPCServer(('localhost', 8000))
+server.register_function(add, 'add')
+server.register_function(subtract, 'subtract')
+server.register_function(multiply, 'multiply')
+server.register_function(divide, 'divide')
+
+print("Server is ready to accept RPC calls....")
+server.serve_forever()
+##############################################################################################
+python Server.py
+####################################### Client.py ############################################
+import xmlrpc.client
+
+def main():
+    server = xmlrpc.client.ServerProxy('http://localhost:8000')
+
+    print("Choose operation:")
+    print("1. Addition")
+    print("2. Subtraction")
+    print("3. Multiplication")
+    print("4. Division")
+
+    choice = input("Enter choice (1/2/3/4): ")
+    a = int(input("Enter first number: "))
+    b = int(input("Enter second number: "))
+
+    if choice == '1':
+        result = server.add(a, b)
+    elif choice == '2':
+        result = server.subtract(a, b)
+    elif choice == '3':
+        result = server.multiply(a, b)
+    elif choice == '4':
+        result = server.divide(a, b)
+    else:
+        result = "Invalid choice"
+
+    print(f"Result: {result}")
+
+if __name__ == "__main__":
+    main()
+###############################################################################################################################################
+python Client.py
+##################################################### Question 3, 16 - RMI (String Concat) ####################################################
 
 ############################### Server.py ##########################################
 import Pyro4
@@ -63,9 +123,9 @@ str2 = input("Enter the second string: ")
 
 result = concatenate.concatenator(str1, str2)  
 print("Concatenated string:", result)
-#########################################################################################################################################
+################################################################################################################################################
 python Client.py
-############################################ Practical 3 - Character counting Hadoop #####################################################
+############################################ Question 5, 7, 15 - Character counting Hadoop #####################################################
 ##################### Text_File.txt #####################
 Hello Hello how are you!
 
@@ -102,10 +162,10 @@ class MRWordCount(MRJob):
 
 if __name__ == "__main__":
     MRWordCount.run()
-########################################################################################################################
+################################################################################################################################################
 python Word_Count_Mr.py Text_File.txt
 
-##################################################### Practical - 4 Load balancing ################################################
+########################################################## Question 8 - Load balancing ##########################################################
 import random
 
 class LoadBalancer:
@@ -154,9 +214,9 @@ if __name__ == '__main__':
 
     simulate_requests(load_balancer, 10)
 
-###################################################################################################################################
+#################################################################################################################################################
 python Load_balancing.py
-##################################################### Practical - 5 Clone selection algorithm ######################################
+########################################################### Question 9 - Clone selection algorithm ##############################################
 import random
 import numpy as np
 
@@ -231,9 +291,9 @@ if __name__ == "__main__":
     )
     print("Best Solution:", best_solution)
     print("Objective Value:", objective_function(best_solution))
-########################################################################################################################################
+##################################################################################################################################################
 python clone_sel_algo.py
-###################################### Practical - 6 Neural Style Transfer #########################################################
+################################################## Question 10 -  Neural Style Transfer ##########################################################
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.applications import vgg19
@@ -390,10 +450,10 @@ plt.imshow(deprocess_img(target_image.numpy()))
 plt.title('Generated Image')
 plt.axis('off')
 plt.show()
-######################################################################################################################################
+##################################################################################################################################################
 pip install keras tensorflow matplotlib pillow numpy
 ipynb file
-###################################### Practical - 7 Artificial Immune pattern recognition ###########################################
+############################################## Question 11 - Artificial Immune pattern recognition ###############################################
 import numpy as np
 from sklearn import datasets
 from sklearn.model_selection import train_test_split
@@ -432,10 +492,10 @@ y_pred = ais_clf.predict(X_test)
 
 accuracy = accuracy_score(y_test, y_pred)
 print("Accuracy : ", accuracy)
-#################################################################################################################################
+##################################################################################################################################################
 pip install scikit-learn
 python Artificial Immune system.py
-####################################### Practical 8 Distributed Evolutionary Algorithm ##########################################
+################################################ Question 12 - Distributed Evolutionary Algorithm ################################################
 import random
 import numpy as np
 from deap import base, creator, tools, algorithms
@@ -474,16 +534,11 @@ if __name__ == "__main__":
     pop, log, hof = main()
     print("Best individual is: %s\nwith fitness: %s" %(hof[0], hof[0].fitness.values))
 
-####################################################################################################################################
+##################################################################################################################################################
 pip install deap
 pyhton DEAP.py
 
-##################################################### Practical 9 Weather ########################################################
-
-
-###################################################################################################################################
-
-################################################### Practical 10 Ant Colony Optimization #############################################
+################################################### Question 13 - Ant Colony Optimization ########################################################
 
 
 
